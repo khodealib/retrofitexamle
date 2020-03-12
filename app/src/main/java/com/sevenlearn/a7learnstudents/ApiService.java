@@ -15,6 +15,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -28,8 +30,10 @@ public class ApiService {
     private static RequestQueue requestQueue;
     private static final String BASE_URL="http://expertdevelopers.ir/api/v1/";
     private String requestTag;
+    private Gson gson;
     public ApiService(Context context,String requestTag) {
         this.requestTag=requestTag;
+        this.gson=new Gson();
         if (requestQueue == null)
             requestQueue = Volley.newRequestQueue(context.getApplicationContext());
     }
@@ -53,17 +57,8 @@ public class ApiService {
                     public void onResponse(JSONObject response) {
                         Log.i(TAG, "onResponse: " + response);
 
-                        Student student = new Student();
-                        try {
-                            student.setId(response.getInt("id"));
-                            student.setFirstName(response.getString("first_name"));
-                            student.setLastName(response.getString("last_name"));
-                            student.setCourse(response.getString("course"));
-                            student.setScore(response.getInt("score"));
-                            callback.onSuccess(student);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+                        Student student = gson.fromJson(response.toString(),Student.class);
+                        callback.onSuccess(student);
                     }
                 },
                 new Response.ErrorListener() {
@@ -86,27 +81,9 @@ public class ApiService {
             public void onResponse(String response) {
                 Log.i(TAG, "onResponse: ");
 
-                List<Student> students=new ArrayList<>();
-                try {
-                    JSONArray jsonArray=new JSONArray(response);
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject studentJsonObject=jsonArray.getJSONObject(i);
-                        Student student=new Student();
-                        student.setId(studentJsonObject.getInt("id"));
-                        student.setFirstName(studentJsonObject.getString("first_name"));
-                        student.setLastName(studentJsonObject.getString("last_name"));
-                        student.setScore(studentJsonObject.getInt("score"));
-                        student.setCourse(studentJsonObject.getString("course"));
-                        students.add(student);
-                    }
+                List<Student> students=gson.fromJson(response,new TypeToken<List<Student>>(){}.getType());
+                callback.onSuccess(students);
 
-                    Log.i(TAG, "onResponse: "+students.size());
-                    callback.onSuccess(students);
-
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
             }
         }, new Response.ErrorListener() {
             @Override

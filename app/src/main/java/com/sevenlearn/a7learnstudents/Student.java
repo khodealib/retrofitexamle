@@ -3,9 +3,13 @@ package com.sevenlearn.a7learnstudents;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.gson.annotations.SerializedName;
+
 public class Student implements Parcelable {
     private int id;
+    @SerializedName("first_name")
     private String firstName;
+    @SerializedName("last_name")
     private String lastName;
     private String course;
     private int score;
