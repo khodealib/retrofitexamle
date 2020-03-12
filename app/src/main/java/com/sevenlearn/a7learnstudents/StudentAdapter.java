@@ -24,6 +24,11 @@ public class StudentAdapter extends RecyclerView.Adapter<StudentAdapter.StudentV
         return new StudentViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_student,parent,false));
     }
 
+    public void addStudent(Student student){
+        this.students.add(0,student);
+        notifyItemInserted(0);
+    }
+
     @Override
     public void onBindViewHolder(@NonNull StudentViewHolder holder, int position) {
         holder.bind(students.get(position));

@@ -1,14 +1,17 @@
 package com.sevenlearn.a7learnstudents;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -26,11 +29,15 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final Integer ADD_STUDENT_REQUEST_ID=1001;
+    private StudentAdapter studentAdapter;
+    private RecyclerView recyclerView;
+    private ApiService apiService;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        apiService=new ApiService(this,TAG);
         Toolbar toolbar=findViewById(R.id.toolbar_main);
         setSupportActionBar(toolbar);
 
@@ -38,47 +45,42 @@ public class MainActivity extends AppCompatActivity {
         addNewStudentBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this,AddNewStudentFormActivity.class));
+                startActivityForResult(new Intent(MainActivity.this,AddNewStudentFormActivity.class),ADD_STUDENT_REQUEST_ID);
             }
         });
 
-        StringRequest request=new StringRequest(Request.Method.GET, "http://expertdevelopers.ir/api/v1/experts/student", new Response.Listener<String>() {
+        apiService.getStudents(new ApiService.StudentListCallback() {
             @Override
-            public void onResponse(String response) {
-                Log.i(TAG, "onResponse: ");
-
-                List<Student> students=new ArrayList<>();
-                try {
-                    JSONArray jsonArray=new JSONArray(response);
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject studentJsonObject=jsonArray.getJSONObject(i);
-                        Student student=new Student();
-                        student.setId(studentJsonObject.getInt("id"));
-                        student.setFirstName(studentJsonObject.getString("first_name"));
-                        student.setLastName(studentJsonObject.getString("last_name"));
-                        student.setScore(studentJsonObject.getInt("score"));
-                        student.setCourse(studentJsonObject.getString("course"));
-                        students.add(student);
-                    }
-
-                    Log.i(TAG, "onResponse: "+students.size());
-
-                    RecyclerView recyclerView=findViewById(R.id.rv_main_students);
-                    recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this,RecyclerView.VERTICAL,false));
-                    recyclerView.setAdapter(new StudentAdapter(students));
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+            public void onSuccess(List<Student> students) {
+                recyclerView=findViewById(R.id.rv_main_students);
+                recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this, RecyclerView.VERTICAL,false));
+                studentAdapter=new StudentAdapter(students);
+                recyclerView.setAdapter(studentAdapter);
             }
-        }, new Response.ErrorListener() {
+
             @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "onErrorResponse: "+error);
+            public void onError(VolleyError error) {
+                Toast.makeText(MainActivity.this,"خطای نامشخص",Toast.LENGTH_SHORT).show();
             }
         });
 
-        RequestQueue requestQueue= Volley.newRequestQueue(this);
-        requestQueue.add(request);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode==ADD_STUDENT_REQUEST_ID && resultCode==Activity.RESULT_OK){
+            if (data!=null && studentAdapter!=null && recyclerView!=null){
+                Student student=data.getParcelableExtra("student");
+                studentAdapter.addStudent(student);
+                recyclerView.smoothScrollToPosition(0);
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        apiService.cancel();
     }
 }
