@@ -49,46 +49,39 @@ public class ApiService {
             e.printStackTrace();
         }
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
-                BASE_URL+"experts/student",
+        GsonRequest<Student> request=new GsonRequest<>(Request.Method.POST,
+                Student.class,
+                BASE_URL + "experts/student",
                 jsonObject,
-                new Response.Listener<JSONObject>() {
+                new Response.Listener<Student>() {
                     @Override
-                    public void onResponse(JSONObject response) {
-                        Log.i(TAG, "onResponse: " + response);
-
-                        Student student = gson.fromJson(response.toString(),Student.class);
-                        callback.onSuccess(student);
+                    public void onResponse(Student response) {
+                        callback.onSuccess(response);
                     }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e(TAG, "onErrorResponse: " + error.toString());
-                        callback.onError(error);
-                    }
-                });
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                callback.onError(error);
+            }
+        });
         request.setTag(requestTag);
 
         requestQueue.add(request);
     }
 
     public void getStudents(final StudentListCallback callback) {
-        StringRequest request=new StringRequest(Request.Method.GET,
-                BASE_URL+"experts/student"
-                , new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                Log.i(TAG, "onResponse: ");
-
-                List<Student> students=gson.fromJson(response,new TypeToken<List<Student>>(){}.getType());
-                callback.onSuccess(students);
-
-            }
-        }, new Response.ErrorListener() {
+        GsonRequest<List<Student>> request=new GsonRequest<>(Request.Method.GET,
+                new TypeToken<List<Student>>() {
+                }.getType(),
+                BASE_URL + "experts/student",
+                new Response.Listener<List<Student>>() {
+                    @Override
+                    public void onResponse(List<Student> response) {
+                        callback.onSuccess(response);
+                    }
+                }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "onErrorResponse: "+error);
                 callback.onError(error);
             }
         });
