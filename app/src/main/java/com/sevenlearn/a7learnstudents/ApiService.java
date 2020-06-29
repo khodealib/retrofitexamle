@@ -1,106 +1,97 @@
 package com.sevenlearn.a7learnstudents;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.util.Log;
 
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import com.google.gson.JsonObject;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
+
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiService {
     private static final String TAG = "ApiService";
-    private static RequestQueue requestQueue;
     private static final String BASE_URL="http://expertdevelopers.ir/api/v1/";
-    private String requestTag;
-    private Gson gson;
+    private RetrofitApiService apiService;
     public ApiService(Context context,String requestTag) {
-        this.requestTag=requestTag;
-        this.gson=new Gson();
-        if (requestQueue == null)
-            requestQueue = Volley.newRequestQueue(context.getApplicationContext());
+        OkHttpClient okHttpClient=new OkHttpClient.Builder()
+                .addInterceptor(new Interceptor() {
+                    @Override
+                    public okhttp3.Response intercept(Chain chain) throws IOException {
+                        Request oldRequest=chain.request();
+                        Request.Builder newRequestBuilder=oldRequest.newBuilder();
+                        newRequestBuilder.addHeader("Acccept","application/json");
+//                        newRequestBuilder.addHeader("Authorization","YOUR TOKEN");
+                        return chain.proceed(newRequestBuilder.build());
+                    }
+                }).build();
+
+        Retrofit retrofit=new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(okHttpClient)
+                .build();
+
+        apiService=retrofit.create(RetrofitApiService.class);
     }
 
     public void saveStudent(String firstName, String lastName, String course, int score, final SaveStudentCallback callback) {
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put("first_name", firstName);
-            jsonObject.put("last_name", lastName);
-            jsonObject.put("course", course);
-            jsonObject.put("score", score);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        GsonRequest<Student> request=new GsonRequest<>(Request.Method.POST,
-                Student.class,
-                BASE_URL + "experts/student",
-                jsonObject,
-                new Response.Listener<Student>() {
-                    @Override
-                    public void onResponse(Student response) {
-                        callback.onSuccess(response);
-                    }
-                }, new Response.ErrorListener() {
+        JsonObject jsonObject=new JsonObject();
+        jsonObject.addProperty("first_name",firstName);
+        jsonObject.addProperty("last_name",lastName);
+        jsonObject.addProperty("course",course);
+        jsonObject.addProperty("score",score);
+        apiService.saveStudent(jsonObject).enqueue(new Callback<Student>() {
             @Override
-            public void onErrorResponse(VolleyError error) {
-                callback.onError(error);
+            public void onResponse(Call<Student> call, Response<Student> response) {
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(Call<Student> call, Throwable t) {
+                callback.onError(new Exception(t));
             }
         });
-        request.setTag(requestTag);
 
-        requestQueue.add(request);
     }
 
     public void getStudents(final StudentListCallback callback) {
-        GsonRequest<List<Student>> request=new GsonRequest<>(Request.Method.GET,
-                new TypeToken<List<Student>>() {
-                }.getType(),
-                BASE_URL + "experts/student",
-                new Response.Listener<List<Student>>() {
+        apiService.getStudents()
+                .enqueue(new Callback<List<Student>>() {
                     @Override
-                    public void onResponse(List<Student> response) {
-                        callback.onSuccess(response);
+                    public void onResponse(Call<List<Student>> call, Response<List<Student>> response) {
+                        callback.onSuccess(response.body());
                     }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                callback.onError(error);
-            }
-        });
-        request.setTag(requestTag);
-        requestQueue.add(request);
+
+                    @Override
+                    public void onFailure(Call<List<Student>> call, Throwable t) {
+                        callback.onError(new Exception(t));
+                    }
+                });
     }
 
     public void cancel(){
-        requestQueue.cancelAll(requestTag);
+
     }
 
     public interface SaveStudentCallback {
         void onSuccess(Student student);
 
-        void onError(VolleyError error);
+        void onError(Exception error);
     }
 
     public interface StudentListCallback{
         void onSuccess(List<Student> students);
-        void onError(VolleyError error);
+        void onError(Exception error);
     }
 }

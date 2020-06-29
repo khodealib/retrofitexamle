@@ -3,7 +3,6 @@ package com.sevenlearn.a7learnstudents;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
@@ -12,16 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.material.textfield.TextInputEditText;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class AddNewStudentFormActivity extends AppCompatActivity {
     private static final String TAG = "AddNewStudentFormActivi";
@@ -67,7 +57,7 @@ public class AddNewStudentFormActivity extends AppCompatActivity {
                                 }
 
                                 @Override
-                                public void onError(VolleyError error) {
+                                public void onError(Exception error) {
                                     Toast.makeText(AddNewStudentFormActivity.this,"خطای نامشخص",Toast.LENGTH_SHORT).show();
                                 }
                             });
